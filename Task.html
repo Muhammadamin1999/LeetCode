@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Expenses List</title>
+</head>
+<body>
+    <h1>Expenses List</h1>
+
+    <!-- Form to add new expense -->
+    <form id="expenseForm">
+        <label for="date">Date:</label>
+        <input type="date" id="date" name="date" required>
+        <label for="category">Category:</label>
+        <input type="text" id="category" name="category" required>
+        <label for="amount">Amount:</label>
+        <input type="number" id="amount" name="amount" step="0.01" required>
+        <button type="submit">Add Expense</button>
+    </form>
+    
+    <h2>Filter Expenses</h2>
+
+    <!-- Form to filter expenses -->
+    <form id="filterForm">
+        <label for="filterDate">Date (Month):</label>
+        <input type="month" id="filterDate" name="filterDate">
+        <label for="filterCategory">Category:</label>
+        <input type="text" id="filterCategory" name="filterCategory">
+        <label for="filterAmountMin">Amount (Min):</label>
+        <input type="number" id="filterAmountMin" name="filterAmountMin" step="0.01">
+        <label for="filterAmountMax">Amount (Max):</label>
+        <input type="number" id="filterAmountMax" name="filterAmountMax" step="0.01">
+        <button type="submit">Filter</button>
+    </form>
+    
+    <h2>Summary Table</h2>
+    <table id="summaryTable" border="1">
+        <!-- Summary table will be generated here -->
+    </table>
+    
+    <script>
+        // Sample expense data
+        let expenses = [
+            {"date": "2023-03-01", "category": "food", "amount": 55},
+            {"date": "2023-03-31", "category": "food", "amount": 6},
+            {"date": "2023-03-31", "category": "fuel", "amount": 210.2},
+            {"date": "2023-03-01", "category": "food", "amount": 23},
+            {"date": "2023-04-02", "category": "food", "amount": 9}
+        ];
+
+        // Get references to the forms and table
+        const expenseForm = document.getElementById('expenseForm');
+        const filterForm = document.getElementById('filterForm');
+        const summaryTable = document.getElementById('summaryTable');
+
+        // Add event listener for the expense form submission
+        expenseForm.addEventListener('submit', (event) => {
+            event.preventDefault();
+            const newExpense = {
+                date: event.target.date.value,
+                category: event.target.category.value,
+                amount: parseFloat(event.target.amount.value)
+            };
+            expenses.push(newExpense);
+            generateSummaryTable(expenses);
+            expenseForm.reset();
+        });
+
+        // Add event listener for the filter form submission
+        filterForm.addEventListener('submit', (event) => {
+            event.preventDefault();
+            const filterDate = event.target.filterDate.value;
+            const filterCategory = event.target.filterCategory.value;
+            const filterAmountMin = parseFloat(event.target.filterAmountMin.value) || 0;
+            const filterAmountMax = parseFloat(event.target.filterAmountMax.value) || Infinity;
+
+            const filteredExpenses = expenses.filter(expense => {
+                const expenseDate = expense.date.slice(0, 7);
+                return (!filterDate || expenseDate === filterDate) &&
+                    (!filterCategory || expense.category === filterCategory) &&
+                    expense.amount >= filterAmountMin &&
+                    expense.amount <= filterAmountMax;
+            });
+
+            generateSummaryTable(filteredExpenses);
+        });
+
+        // Function to generate the summary table
+        function generateSummaryTable(expenses) {
+            summaryTable.innerHTML = '';
+            const summaryData = {};
+
+            // Process the expenses to organize them by month and category
+            expenses.forEach(expense => {
+                const month = expense.date.slice(0, 7);
+                const day = parseInt(expense.date.slice(8, 10));
+                if (!summaryData[month]) summaryData[month] = {};
+                if (!summaryData[month][expense.category]) summaryData[month][expense.category] = {};
+                if (!summaryData[month][expense.category][day]) summaryData[month][expense.category][day] = 0;
+                summaryData[month][expense.category][day] += expense.amount;
+            });
+
+            // Generate the HTML for the summary table
+            for (const month in summaryData) {
+                // Add a row for the month
+                const monthRow = document.createElement('tr');
+                const monthCell = document.createElement('td');
+                monthCell.colSpan = 4;
+                monthCell.textContent = month;
+                monthRow.appendChild(monthCell);
+                summaryTable.appendChild(monthRow);
+
+                for (const category in summaryData[month]) {
+                    // Add a row for the category
+                    const categoryRow = document.createElement('tr');
+                    const categoryCell = document.createElement('td');
+                    categoryCell.rowSpan = Object.keys(summaryData[month][category]).length + 2;
+                    categoryCell.textContent = category;
+                    categoryRow.appendChild(categoryCell);
+                    summaryTable.appendChild(categoryRow);
+
+                    for (const day in summaryData[month][category]) {
+                        // Add rows for each day with expenses
+                        const dayRow = document.createElement('tr');
+                        const dayCell = document.createElement('td');
+                        dayCell.textContent = day;
+                        const amountCell = document.createElement('td');
+                        amountCell.colSpan = 2;
+                        amountCell.textContent = summaryData[month][category][day];
+                        dayRow.appendChild(dayCell);
+                        dayRow.appendChild(amountCell);
+                        summaryTable.appendChild(dayRow);
+                    }
+
+                    // Add a row for the category total
+                    const totalRow = document.createElement('tr');
+                    const totalLabelCell = document.createElement('td');
+                    totalLabelCell.textContent = 'total';
+                    const totalAmountCell = document.createElement('td');
+                    totalAmountCell.colSpan = 2;
+                    const totalAmount = Object.values(summaryData[month][category]).reduce((acc, curr) => acc + curr, 0);
+                    totalAmountCell.textContent = totalAmount;
+                    totalRow.appendChild(totalLabelCell);
+                    totalRow.appendChild(totalAmountCell);
+                    summaryTable.appendChild(totalRow);
+                }
+            }
+        }
+
+        // Initial table generation
+        generateSummaryTable(expenses);
+    </script>
+</body>
+</html>
